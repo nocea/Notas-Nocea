@@ -3,6 +3,8 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import { PanelRightClose, PanelRightOpen } from 'lucide-react';
+import clsx from 'clsx';
 // import rehypeSanitize from 'rehype-sanitize'; // Optional: for security if content is untrusted
 // import remarkMath from 'remark-math'; // Optional: if math support needed later
 // import rehypeKatex from 'rehype-katex'; 
@@ -14,6 +16,7 @@ interface MarkdownViewerProps {
 }
 
 export default function MarkdownViewer({ content }: MarkdownViewerProps) {
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
   // Extract headers for TOC
   const headers = React.useMemo(() => {
     if (!content) return [];
@@ -83,39 +86,60 @@ export default function MarkdownViewer({ content }: MarkdownViewerProps) {
       </div>
       
       {headers.length > 0 && (
-        <div className={styles.tocContainer}>
-          <div className={styles.tocTitle}>En esta nota</div>
-          <div className={styles.tocList}>
-            {headers.map((header, index) => {
-              let label = "";
-              if (header.level === 1) {
-                const h1Index = headers.filter((h, i) => h.level === 1 && i <= index).length;
-                label = `${h1Index}. `;
-              } else if (header.level === 2) {
-                // Find index of this H2 relative to its parent H1
-                const precedingH1s = headers.filter((h, i) => h.level === 1 && i < index);
-                const lastH1Index = precedingH1s.length > 0 ? headers.indexOf(precedingH1s[precedingH1s.length - 1]) : -1;
-                const h2Index = headers.filter((h, i) => h.level === 2 && i > lastH1Index && i <= index).length;
-                label = `${String.fromCharCode(64 + h2Index)}. `;
-              }
-
-              return (
-                <a
-                  key={`${header.id}-${index}`}
-                  onClick={() => scrollToId(header.id)}
-                  className={`${styles.tocItem} ${
-                    header.level === 1 ? styles.tocItemH1 : 
-                    header.level === 2 ? styles.tocItemH2 : 
-                    styles.tocItemH3
-                  }`}
-                  title={header.text}
+        <>
+          {isCollapsed && (
+            <button 
+              className={styles.expandBtn} 
+              onClick={() => setIsCollapsed(false)}
+              title="Mostrar Índice"
+            >
+              <PanelRightOpen size={18} />
+            </button>
+          )}
+          <div className={clsx(styles.tocContainer, isCollapsed && styles.collapsed)}>
+            <div style={{ opacity: isCollapsed ? 0 : 1, transition: 'opacity 0.2s', display: isCollapsed ? 'none' : 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <div className={styles.tocTitle}>En esta nota</div>
+                <button 
+                  className={styles.toggleBtn} 
+                  onClick={() => setIsCollapsed(true)}
+                  title="Ocultar Índice"
                 >
-                  {label}{header.text}
-                </a>
-              );
-            })}
+                  <PanelRightClose size={16} />
+                </button>
+              </div>
+              <div className={styles.tocList}>
+                {headers.map((header, index) => {
+                  let label = "";
+                  if (header.level === 1) {
+                    const h1Index = headers.filter((h, i) => h.level === 1 && i <= index).length;
+                    label = `${h1Index}. `;
+                  } else if (header.level === 2) {
+                    const precedingH1s = headers.filter((h, i) => h.level === 1 && i < index);
+                    const lastH1Index = precedingH1s.length > 0 ? headers.indexOf(precedingH1s[precedingH1s.length - 1]) : -1;
+                    const h2Index = headers.filter((h, i) => h.level === 2 && i > lastH1Index && i <= index).length;
+                    label = `${String.fromCharCode(64 + h2Index)}. `;
+                  }
+
+                  return (
+                    <a
+                      key={`${header.id}-${index}`}
+                      onClick={() => scrollToId(header.id)}
+                      className={`${styles.tocItem} ${
+                        header.level === 1 ? styles.tocItemH1 : 
+                        header.level === 2 ? styles.tocItemH2 : 
+                        styles.tocItemH3
+                      }`}
+                      title={header.text}
+                    >
+                      {label}{header.text}
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
