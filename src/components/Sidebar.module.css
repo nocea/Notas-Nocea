@@ -6,6 +6,7 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: relative; 
 }
 
 .title {
@@ -68,7 +69,7 @@
 }
 
 .active {
-  background-color: rgba(123, 151, 170, 0.2); /* primary with opacity */
+  background-color: rgba(123, 151, 170, 0.2); 
   color: var(--foreground);
   border-right: 3px solid var(--primary);
 }
@@ -82,4 +83,46 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.inlineInput {
+  background: transparent;
+  border: 1px solid var(--primary);
+  color: var(--foreground);
+  font-size: 0.9rem;
+  font-family: inherit;
+  width: 100%;
+  padding: 0 4px;
+  border-radius: 2px;
+  outline: none;
+}
+
+.dropTarget {
+    background-color: rgba(152, 195, 121, 0.2); 
+    border: 1px dashed var(--success);
+}
+
+.contextMenu {
+    position: fixed; 
+    background-color: var(--background);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    border-radius: 4px;
+    z-index: 1000;
+    min-width: 140px;
+    padding: 0.25rem 0;
+}
+
+.contextMenuItem {
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--foreground);
+}
+
+.contextMenuItem:hover {
+    background-color: var(--secondary);
 }

@@ -1,102 +1,90 @@
 'use server';
 
-import { saveFileContent } from '@/lib/fs';
-import { revalidatePath } from 'next/cache';
-import fs from 'fs/promises';
 import path from 'path';
+import fs from 'fs/promises';
+import { revalidatePath } from 'next/cache';
 
-export async function saveFile(filePath: string, content: string) {
-  try {
-    await saveFileContent(filePath, content);
-    revalidatePath(`/${filePath}`);
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to save file:', error);
-    return { success: false, error: 'Failed to save file' };
-  }
-}
+// Basic file operations
 
-export async function createNode(pathStr: string, type: 'file' | 'folder') {
-  const fullPath = path.join(process.cwd(), 'content', pathStr);
+export async function createNode(name: string, type: 'file' | 'folder') {
+  const fullPath = path.join(process.cwd(), 'content', name);
+  
   try {
+    // Ensure parent directory exists
+    await fs.mkdir(path.dirname(fullPath), { recursive: true });
+
     if (type === 'folder') {
       await fs.mkdir(fullPath, { recursive: true });
     } else {
-      // Check if file exists
+      // Check if file exists to avoid overwriting? 
+      // For now let's assume if it exists we might overwrite or error.
+      // Better to check.
       try {
         await fs.access(fullPath);
         return { success: false, error: 'File already exists' };
       } catch {
-        // File doesn't exist, create it
-        await fs.writeFile(fullPath, '', 'utf-8');
+        // File doesn't exist, proceed
+        await fs.writeFile(fullPath, '# ' + path.basename(name, '.md') + '\n\n');
       }
     }
-    revalidatePath('/');
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to create node:', error);
-    return { success: false, error: String(error) };
-  }
-}
-
-import { exec } from 'child_process';
-import { promisify } from 'util';
-const execAsync = promisify(exec);
-
-
-export async function getGitConfig() {
-  const repoRoot = process.cwd();
-  try {
-    const { stdout } = await execAsync('git remote get-url origin', { cwd: repoRoot });
-    return { configured: true, remoteUrl: stdout.trim() };
-  } catch (error) {
-    return { configured: false, remoteUrl: '' };
-  }
-}
-
-export async function setGitRemote(url: string) {
-  const repoRoot = process.cwd();
-  try {
-    // Try to remove origin first in case it exists but is broken or we are changing it
-    try {
-        await execAsync('git remote remove origin', { cwd: repoRoot });
-    } catch {}
     
-    await execAsync(`git remote add origin ${url}`, { cwd: repoRoot });
+    revalidatePath('/');
     return { success: true };
   } catch (error) {
-    console.error('Failed to set remote:', error);
     return { success: false, error: String(error) };
   }
 }
 
-export async function gitPull() {
-  const repoRoot = process.cwd();
+export async function saveContent(filePath: string, content: string) {
+  const fullPath = path.join(process.cwd(), 'content', filePath);
   try {
-    // "pull"
-    await execAsync('git pull origin master', { cwd: repoRoot });
-    revalidatePath('/');
-    return { success: true, message: 'Updated from master' };
+    await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    await fs.writeFile(fullPath, content);
+    revalidatePath(`/${filePath}`);
+    return { success: true };
   } catch (error) {
-     console.error('Git pull failed:', error);
-     return { success: false, error: String(error) };
+    return { success: false, error: String(error) };
   }
 }
 
-export async function gitPush() {
-  const repoRoot = process.cwd();
-  try {
-    await execAsync('git add .', { cwd: repoRoot });
+export async function moveNode(sourcePath: string, targetPath: string) {
+    const fullSource = path.join(process.cwd(), 'content', sourcePath);
+    const fullTarget = path.join(process.cwd(), 'content', targetPath);
+
     try {
-        await execAsync(`git commit -m "Auto-sync ${new Date().toISOString()}"`, { cwd: repoRoot });
-    } catch {
-        // Commit might fail if nothing to commit, that's fine, proceed to push
+        const fileName = path.basename(sourcePath);
+        const newPath = path.join(targetPath, fileName); // targetPath is the folder
+        
+        const destFull = path.join(process.cwd(), 'content', newPath);
+        
+        await fs.rename(fullSource, destFull);
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: String(error) };
     }
-    await execAsync('git push origin master', { cwd: repoRoot });
+}
+
+export async function renameNode(oldPath: string, newPath: string) {
+    const fullOld = path.join(process.cwd(), 'content', oldPath);
+    const fullNew = path.join(process.cwd(), 'content', newPath);
     
-    return { success: true, message: 'Pushed to master' };
-  } catch (error) {
-    console.error('Git push failed:', error);
-    return { success: false, error: String(error) };
-  }
+    try {
+        await fs.rename(fullOld, fullNew);
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: String(error) };
+    }
+}
+
+export async function deleteNode(pathStr: string) {
+    const fullPath = path.join(process.cwd(), 'content', pathStr);
+    try {
+        await fs.rm(fullPath, { recursive: true, force: true });
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: String(error) };
+    }
 }

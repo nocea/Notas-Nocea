@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import CodeEditor from './CodeEditor';
 import MarkdownViewer from './MarkdownViewer';
-import { saveFile } from '@/app/actions';
+import { saveContent } from '@/app/actions';
 import { Save, Eye, Edit, Columns, File as FileIcon } from 'lucide-react';
 import clsx from 'clsx';
 import styles from './EditorLayout.module.css';
@@ -31,7 +31,7 @@ export default function EditorLayout({ initialContent, filePath }: EditorLayoutP
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
-    const result = await saveFile(filePath, content);
+    const result = await saveContent(filePath, content);
     setIsSaving(false);
     if (result.success) {
       setIsDirty(false);
