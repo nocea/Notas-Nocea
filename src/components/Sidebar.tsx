@@ -10,6 +10,7 @@ import styles from './Sidebar.module.css';
 import clsx from 'clsx';
 import { DndContext, useDraggable, useDroppable, DragEndEvent, pointerWithin, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import ThemeToggle from './ThemeToggle';
+import NotePreview from './NotePreview';
 
 interface FileTreeItemProps {
   node: FileNode;
@@ -21,6 +22,7 @@ interface FileTreeItemProps {
   onCancel: () => void;
   collapseAllTick?: number;
   searchQuery?: string;
+  onHover: (node: FileNode | null, x: number, y: number) => void;
 }
 
 // Inline Input Component
@@ -129,7 +131,7 @@ const getDisplayName = (name: string, type: 'file' | 'directory') => {
 
 const FileTreeItem: React.FC<FileTreeItemProps> = (props) => {
     const { 
-  node, level, onContextMenu, editingState, creatingState, onSubmit, onCancel, collapseAllTick, searchQuery 
+  node, level, onContextMenu, editingState, creatingState, onSubmit, onCancel, collapseAllTick, searchQuery, onHover
 } = props;
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -219,6 +221,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = (props) => {
                         onCancel={onCancel}
                         collapseAllTick={collapseAllTick}
                         searchQuery={searchQuery}
+                        onHover={onHover}
                     />
                 ))}
             </div>
@@ -231,6 +234,8 @@ const FileTreeItem: React.FC<FileTreeItemProps> = (props) => {
       style={{ paddingLeft }}
       onContextMenu={(e) => onContextMenu(e, node)}
       onClick={(e) => isEditing && e.preventDefault()}
+      onMouseEnter={(e) => onHover(node, e.clientX, e.clientY)}
+      onMouseLeave={() => onHover(null, 0, 0)}
     >
       <FileText size={14} className={styles.icon} />
       {labelContent}
@@ -263,6 +268,15 @@ export default function Sidebar({ initialTree }: { initialTree: FileNode[] }) {
     const [collapseAllTick, setCollapseAllTick] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [hoveredNote, setHoveredNote] = useState<{ node: FileNode; x: number; y: number } | null>(null);
+
+    const handleHover = (node: FileNode | null, x: number, y: number) => {
+        if (!node || node.type === 'directory') {
+            setHoveredNote(null);
+        } else {
+            setHoveredNote({ node, x, y });
+        }
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -518,9 +532,18 @@ export default function Sidebar({ initialTree }: { initialTree: FileNode[] }) {
                 onCancel={handleCancel}
                 collapseAllTick={collapseAllTick}
                 searchQuery={searchQuery}
+                onHover={handleHover}
             />
             ))}
         </RootDropZone>
+        
+        {hoveredNote && (
+            <NotePreview 
+                path={hoveredNote.node.path} 
+                x={hoveredNote.x} 
+                y={hoveredNote.y} 
+            />
+        )}
         
         {contextMenu.node && (
             <div 

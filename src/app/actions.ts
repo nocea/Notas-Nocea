@@ -88,3 +88,13 @@ export async function deleteNode(pathStr: string) {
         return { success: false, error: String(error) };
     }
 }
+
+export async function getFileContentAction(filePath: string) {
+  const fullPath = path.join(process.cwd(), 'content', filePath);
+  try {
+    const content = await fs.readFile(fullPath, 'utf-8');
+    return { success: true, content };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+}

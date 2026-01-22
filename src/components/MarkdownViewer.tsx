@@ -10,6 +10,7 @@ import clsx from 'clsx';
 // import rehypeKatex from 'rehype-katex'; 
 
 import styles from './MarkdownViewer.module.scss';
+import NotePreview from './NotePreview';
 
 interface MarkdownViewerProps {
   content: string;
@@ -17,6 +18,7 @@ interface MarkdownViewerProps {
 
 export default function MarkdownViewer({ content }: MarkdownViewerProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [hoveredNote, setHoveredNote] = React.useState<{ path: string; x: number; y: number } | null>(null);
   // Extract headers for TOC
   const headers = React.useMemo(() => {
     if (!content) return [];
@@ -78,12 +80,46 @@ export default function MarkdownViewer({ content }: MarkdownViewerProps) {
                 const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/^-+|-+$/g, '');
                 return <h3 id={id}>{children}</h3>;
               },
+              a: ({ href, children }) => {
+                const isInternal = href?.startsWith('/') || href?.startsWith('./') || (!href?.startsWith('http') && href?.endsWith('.md'));
+                
+                const handleMouseEnter = (e: React.MouseEvent) => {
+                  if (isInternal && href) {
+                    // Clean up path
+                    let cleanPath = href.startsWith('/') ? href.slice(1) : href;
+                    if (!cleanPath.endsWith('.md')) cleanPath += '.md';
+                    setHoveredNote({ path: cleanPath, x: e.clientX, y: e.clientY });
+                  }
+                };
+
+                const handleMouseLeave = () => {
+                  setHoveredNote(null);
+                };
+
+                return (
+                  <a 
+                    href={href} 
+                    onMouseEnter={handleMouseEnter} 
+                    onMouseLeave={handleMouseLeave}
+                  >
+                    {children}
+                  </a>
+                );
+              }
             }}
           >
             {content}
           </ReactMarkdown>
         </div>
       </div>
+      
+      {hoveredNote && (
+        <NotePreview 
+          path={hoveredNote.path} 
+          x={hoveredNote.x} 
+          y={hoveredNote.y} 
+        />
+      )}
       
       {headers.length > 0 && (
         <>
