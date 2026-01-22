@@ -126,3 +126,50 @@
 .contextMenuItem:hover {
     background-color: var(--secondary);
 }
+
+.sortWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.sortMenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background-color: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    z-index: 1000;
+    min-width: 280px;
+    padding: 0.5rem 0;
+}
+
+.sortOption {
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--foreground);
+    transition: background 0.2s;
+}
+
+.sortOption:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sortDivider {
+    height: 1px;
+    background-color: var(--border);
+    margin: 0.4rem 0.5rem;
+}
+
+.activeTool {
+    background-color: var(--primary) !important;
+    color: white !important;
+}

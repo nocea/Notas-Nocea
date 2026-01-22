@@ -1,22 +1,27 @@
-
-import React from 'react';
-import Editor, { OnMount } from '@monaco-editor/react';
+import React from "react";
+import Editor, { OnMount } from "@monaco-editor/react";
 
 interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
   language?: string;
+  onEditorMount?: (editor: any, monaco: any) => void;
 }
 
-export default function CodeEditor({ value, onChange, language = 'markdown' }: CodeEditorProps) {
-  
+export default function CodeEditor({
+  value,
+  onChange,
+  language = "markdown",
+  onEditorMount,
+}: CodeEditorProps) {
   const handleEditorChange = (value: string | undefined) => {
-    onChange(value || '');
+    onChange(value || "");
   };
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
-    // Configure editor settings here if needed
-    // e.g. minmap, wordWrap, etc.
+    if (onEditorMount) {
+      onEditorMount(editor, monaco);
+    }
   };
 
   return (
@@ -30,10 +35,10 @@ export default function CodeEditor({ value, onChange, language = 'markdown' }: C
       onChange={handleEditorChange}
       onMount={handleEditorDidMount}
       options={{
-        wordWrap: 'on',
+        wordWrap: "on",
         minimap: { enabled: false },
         fontSize: 14,
-        fontFamily: 'JetBrains Mono, Fira Code, monospace',
+        fontFamily: "JetBrains Mono, Fira Code, monospace",
         scrollBeyondLastLine: false,
         automaticLayout: true,
       }}

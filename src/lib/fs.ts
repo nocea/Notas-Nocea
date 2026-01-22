@@ -8,6 +8,8 @@ export type FileNode = {
   name: string;
   path: string;
   type: 'file' | 'directory';
+  mtime: number;
+  birthtime: number;
   children?: FileNode[];
 };
 
@@ -19,10 +21,15 @@ export async function getFileTree(dir: string = ''): Promise<FileNode[]> {
     const nodes = await Promise.all(
       dirents.map(async (dirent) => {
         const relativePath = path.join(dir, dirent.name);
+        const absolutePath = path.join(fullPath, dirent.name);
+        const stats = await fs.stat(absolutePath);
+        
         const node: FileNode = {
           name: dirent.name,
           path: relativePath,
           type: dirent.isDirectory() ? 'directory' : 'file',
+          mtime: stats.mtimeMs,
+          birthtime: stats.birthtimeMs,
         };
 
         if (node.type === 'directory') {
@@ -33,7 +40,7 @@ export async function getFileTree(dir: string = ''): Promise<FileNode[]> {
       })
     );
 
-    // Sort: directories first, then files
+    // Default sort: directories first, then files by name A-Z
     return nodes.sort((a, b) => {
       if (a.type === b.type) return a.name.localeCompare(b.name);
       return a.type === 'directory' ? -1 : 1;

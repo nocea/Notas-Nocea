@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { FileNode } from '@/lib/fs';
 import { createNode, moveNode, renameNode, deleteNode } from '@/app/actions';
-import { Folder, FileText, ChevronRight, ChevronDown, Plus, FolderPlus, Trash, Edit, MoreVertical } from 'lucide-react';
+import { Folder, FileText, ChevronRight, ChevronDown, Plus, FolderPlus, Trash, Edit, MoreVertical, SortAsc, Check } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import clsx from 'clsx';
 import { DndContext, useDraggable, useDroppable, DragEndEvent, pointerWithin, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
@@ -237,6 +237,8 @@ export default function Sidebar({ initialTree }: { initialTree: FileNode[] }) {
     // Using 'directory' instead of 'folder' to match FileNode type
     const [editingState, setEditingState] = useState<{ path: string; type: 'file' | 'directory' } | null>(null);
     const [creatingState, setCreatingState] = useState<{ parentPath: string; type: 'file' | 'directory' } | null>(null);
+    const [sortOption, setSortOption] = useState<'name-asc' | 'name-desc' | 'mtime-asc' | 'mtime-desc' | 'birthtime-asc' | 'birthtime-desc'>('name-asc');
+    const [showSortMenu, setShowSortMenu] = useState(false);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -322,16 +324,52 @@ export default function Sidebar({ initialTree }: { initialTree: FileNode[] }) {
     const closeContextMenu = () => setContextMenu({ x: 0, y: 0, node: null });
 
     useEffect(() => {
-        const clickHandler = () => closeContextMenu();
+        const clickHandler = () => {
+            closeContextMenu();
+            setShowSortMenu(false);
+        };
         window.addEventListener('click', clickHandler);
         return () => window.removeEventListener('click', clickHandler);
     }, []);
+
+    const sortNodes = (nodes: FileNode[]): FileNode[] => {
+        const sorted = [...nodes].sort((a, b) => {
+            // Directories always first? Let's check user preference or keep them first
+            if (a.type !== b.type) {
+                return a.type === 'directory' ? -1 : 1;
+            }
+
+            switch (sortOption) {
+                case 'name-asc':
+                    return a.name.localeCompare(b.name);
+                case 'name-desc':
+                    return b.name.localeCompare(a.name);
+                case 'mtime-desc':
+                    return b.mtime - a.mtime;
+                case 'mtime-asc':
+                    return a.mtime - b.mtime;
+                case 'birthtime-desc':
+                    return b.birthtime - a.birthtime;
+                case 'birthtime-asc':
+                    return a.birthtime - b.birthtime;
+                default:
+                    return 0;
+            }
+        });
+
+        return sorted.map(node => ({
+            ...node,
+            children: node.children ? sortNodes(node.children) : undefined
+        }));
+    };
+
+    const sortedTree = sortNodes(initialTree);
 
   return (
     <DndContext onDragEnd={handleDragEnd} collisionDetection={pointerWithin} sensors={sensors}>
         <aside className={styles.sidebar}>
         <div className={styles.title}>
-            <span>Notas Nocea</span>
+            <span>Notas</span>
         </div>
         <div className={styles.toolbar}>
             <button onClick={() => handleCreateStart('file')} className={styles.toolBtn} title="Nueva Nota">
@@ -340,6 +378,39 @@ export default function Sidebar({ initialTree }: { initialTree: FileNode[] }) {
             <button onClick={() => handleCreateStart('directory')} className={styles.toolBtn} title="Nueva Carpeta">
                 <FolderPlus size={16} />
             </button>
+            <div className={styles.sortWrapper}>
+                <button 
+                    onClick={(e) => { e.stopPropagation(); setShowSortMenu(!showSortMenu); }} 
+                    className={clsx(styles.toolBtn, showSortMenu && styles.activeTool)} 
+                    title="Ordenar"
+                >
+                    <SortAsc size={16} />
+                </button>
+                {showSortMenu && (
+                    <div className={styles.sortMenu} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.sortOption} onClick={() => { setSortOption('name-asc'); setShowSortMenu(false); }}>
+                            Ordenar por nombre de archivo (A-Z) {sortOption === 'name-asc' && <Check size={14} />}
+                        </div>
+                        <div className={styles.sortOption} onClick={() => { setSortOption('name-desc'); setShowSortMenu(false); }}>
+                            Ordenar por nombre de archivo (Z-A) {sortOption === 'name-desc' && <Check size={14} />}
+                        </div>
+                        <div className={styles.sortDivider} />
+                        <div className={styles.sortOption} onClick={() => { setSortOption('mtime-desc'); setShowSortMenu(false); }}>
+                            Ordenar por fecha de edición (más reciente) {sortOption === 'mtime-desc' && <Check size={14} />}
+                        </div>
+                        <div className={styles.sortOption} onClick={() => { setSortOption('mtime-asc'); setShowSortMenu(false); }}>
+                            Ordenar por fecha de edición (más antiguo) {sortOption === 'mtime-asc' && <Check size={14} />}
+                        </div>
+                        <div className={styles.sortDivider} />
+                        <div className={styles.sortOption} onClick={() => { setSortOption('birthtime-desc'); setShowSortMenu(false); }}>
+                            Creado (nuevo-antiguo) {sortOption === 'birthtime-desc' && <Check size={14} />}
+                        </div>
+                        <div className={styles.sortOption} onClick={() => { setSortOption('birthtime-asc'); setShowSortMenu(false); }}>
+                            Creado (antiguo-nuevo) {sortOption === 'birthtime-asc' && <Check size={14} />}
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
         <RootDropZone>
             {creatingState?.parentPath === '' && (
@@ -353,7 +424,7 @@ export default function Sidebar({ initialTree }: { initialTree: FileNode[] }) {
                      />
                 </div>
             )}
-            {initialTree.map((node) => (
+            {sortedTree.map((node) => (
             <FileTreeItem 
                 key={node.path} 
                 node={node} 

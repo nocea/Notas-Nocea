@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import CodeEditor from './CodeEditor';
 import MarkdownViewer from './MarkdownViewer';
+import MarkdownToolbar from './MarkdownToolbar';
 import { saveContent } from '@/app/actions';
 import { Save, Eye, Edit, Columns, File as FileIcon } from 'lucide-react';
 import clsx from 'clsx';
@@ -20,13 +21,13 @@ export default function EditorLayout({ initialContent, filePath }: EditorLayoutP
   const [mode, setMode] = useState<ViewMode>('view');
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [editorInstance, setEditorInstance] = useState<any>(null);
+  const [monacoInstance, setMonacoInstance] = useState<any>(null);
 
   // Update content if initialContent changes (e.g. navigation)
   useEffect(() => {
     setContent(initialContent);
     setIsDirty(false);
-    // Default to view mode on navigation? Or keep previous? 
-    // Let's keep previous for now or default to view.
   }, [initialContent, filePath]);
 
   const handleSave = useCallback(async () => {
@@ -55,6 +56,11 @@ export default function EditorLayout({ initialContent, filePath }: EditorLayoutP
   const handleContentChange = (newContent: string) => {
     setContent(newContent);
     setIsDirty(true);
+  };
+
+  const handleEditorMount = (editor: any, monaco: any) => {
+    setEditorInstance(editor);
+    setMonacoInstance(monaco);
   };
 
   return (
@@ -104,7 +110,14 @@ export default function EditorLayout({ initialContent, filePath }: EditorLayoutP
       <div className={styles.contentArea}>
         {(mode === 'edit' || mode === 'split') && (
           <div className={clsx(styles.pane, styles.editorPane)}>
-            <CodeEditor value={content} onChange={handleContentChange} />
+            <MarkdownToolbar editor={editorInstance} monaco={monacoInstance} />
+            <div style={{ flex: 1, position: 'relative', width: '100%' }}>
+              <CodeEditor 
+                value={content} 
+                onChange={handleContentChange} 
+                onEditorMount={handleEditorMount}
+              />
+            </div>
           </div>
         )}
         
