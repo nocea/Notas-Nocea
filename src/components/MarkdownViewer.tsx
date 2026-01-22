@@ -14,21 +14,109 @@ interface MarkdownViewerProps {
 }
 
 export default function MarkdownViewer({ content }: MarkdownViewerProps) {
-  return (
+  // Extract headers for TOC
+  const headers = React.useMemo(() => {
+    if (!content) return [];
+    const lines = content.split(/\r?\n/);
+    const extracted: { level: number; text: string; id: string }[] = [];
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Match #, ##, or ### followed by space and then text
+      const match = trimmed.match(/^(#{1,3})\s+(.+)$/);
+      if (match) {
+        const text = match[2].trim();
+        extracted.push({
+          level: match[1].length,
+          text: text,
+          id: text.toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/^-+|-+$/g, '')
+        });
+      }
+    }
+    return extracted;
+  }, [content]);
 
-    <div className={styles.viewer}>
-      <div className={styles.markdown}>
-        <ReactMarkdown 
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw]}
-          components={{
-            // Custom components can be added here
-            // e.g. code blocks, callouts, etc.
-          }}
-        >
-          {content}
-        </ReactMarkdown>
+  const scrollToId = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      const container = element.closest(`.${styles.viewer}`);
+      if (container) {
+        const top = element.offsetTop - 20;
+        container.scrollTo({ top, behavior: 'smooth' });
+      } else {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  return (
+    <div className={styles.wrapper}>
+      <div className={styles.viewer}>
+        <div className={styles.markdown}>
+          <ReactMarkdown 
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
+            components={{
+              h1: ({ children }) => {
+                const text = String(children);
+                const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/^-+|-+$/g, '');
+                return <h1 id={id}>{children}</h1>;
+              },
+              h2: ({ children }) => {
+                const text = String(children);
+                const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/^-+|-+$/g, '');
+                return <h2 id={id}>{children}</h2>;
+              },
+              h3: ({ children }) => {
+                const text = String(children);
+                const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/^-+|-+$/g, '');
+                return <h3 id={id}>{children}</h3>;
+              },
+            }}
+          >
+            {content}
+          </ReactMarkdown>
+        </div>
       </div>
+      
+      {headers.length > 0 && (
+        <div className={styles.tocContainer}>
+          <div className={styles.tocTitle}>En esta nota</div>
+          <div className={styles.tocList}>
+            {headers.map((header, index) => {
+              let label = "";
+              if (header.level === 1) {
+                const h1Index = headers.filter((h, i) => h.level === 1 && i <= index).length;
+                label = `${h1Index}. `;
+              } else if (header.level === 2) {
+                // Find index of this H2 relative to its parent H1
+                const precedingH1s = headers.filter((h, i) => h.level === 1 && i < index);
+                const lastH1Index = precedingH1s.length > 0 ? headers.indexOf(precedingH1s[precedingH1s.length - 1]) : -1;
+                const h2Index = headers.filter((h, i) => h.level === 2 && i > lastH1Index && i <= index).length;
+                label = `${String.fromCharCode(64 + h2Index)}. `;
+              }
+
+              return (
+                <a
+                  key={`${header.id}-${index}`}
+                  onClick={() => scrollToId(header.id)}
+                  className={`${styles.tocItem} ${
+                    header.level === 1 ? styles.tocItemH1 : 
+                    header.level === 2 ? styles.tocItemH2 : 
+                    styles.tocItemH3
+                  }`}
+                  title={header.text}
+                >
+                  {label}{header.text}
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

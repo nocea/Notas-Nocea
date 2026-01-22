@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { FileNode } from '@/lib/fs';
 import { createNode, moveNode, renameNode, deleteNode } from '@/app/actions';
-import { Folder, FileText, ChevronRight, ChevronDown, Plus, FolderPlus, Trash, Edit, MoreVertical, SortAsc, Check } from 'lucide-react';
+import { Folder, FileText, ChevronRight, ChevronDown, Plus, FolderPlus, Trash, Edit, MoreVertical, SortAsc, Check, FoldVertical, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import clsx from 'clsx';
 import { DndContext, useDraggable, useDroppable, DragEndEvent, pointerWithin, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
@@ -19,6 +19,8 @@ interface FileTreeItemProps {
   creatingState: { parentPath: string; type: 'file' | 'directory' } | null;
   onSubmit: (val: string) => void;
   onCancel: () => void;
+  collapseAllTick?: number;
+  searchQuery?: string;
 }
 
 // Inline Input Component
@@ -125,9 +127,10 @@ const getDisplayName = (name: string, type: 'file' | 'directory') => {
     return name.replace(/\.md$/, '');
 };
 
-const FileTreeItem: React.FC<FileTreeItemProps> = ({ 
-    node, level, onContextMenu, editingState, creatingState, onSubmit, onCancel 
-}) => {
+const FileTreeItem: React.FC<FileTreeItemProps> = (props) => {
+    const { 
+  node, level, onContextMenu, editingState, creatingState, onSubmit, onCancel, collapseAllTick, searchQuery 
+} = props;
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const decodedPathname = pathname ? decodeURIComponent(pathname) : '';
@@ -141,6 +144,20 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
       }
   }, [creatingState, node.path]);
 
+  // Handle collapse all
+  useEffect(() => {
+      if (node.type === 'directory') {
+          setIsOpen(false);
+      }
+  }, [node.type, props.collapseAllTick]);
+
+  // Auto-expand on search
+  useEffect(() => {
+      if (props.searchQuery && node.type === 'directory') {
+          setIsOpen(true);
+      }
+  }, [props.searchQuery, node.type]);
+
   const handleToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsOpen(!isOpen);
@@ -149,6 +166,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
   const paddingLeft = `${level * 12 + 12}px`;
   const isEditing = editingState?.path === node.path;
   const isCreatingChild = creatingState?.parentPath === node.path;
+  const isSearchMatch = searchQuery && node.name.toLowerCase().includes(searchQuery.toLowerCase());
 
   // Render content
   let labelContent;
@@ -167,7 +185,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
   const content = node.type === 'directory' ? (
       <div className={styles.itemContainer}>
         <div 
-          className={styles.item} 
+          className={clsx(styles.item, isSearchMatch && styles.searchHighlight)} 
           onClick={handleToggle}
           onContextMenu={(e) => onContextMenu(e, node)}
           style={{ paddingLeft }}
@@ -199,6 +217,8 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
                         creatingState={creatingState}
                         onSubmit={onSubmit}
                         onCancel={onCancel}
+                        collapseAllTick={collapseAllTick}
+                        searchQuery={searchQuery}
                     />
                 ))}
             </div>
@@ -207,7 +227,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
   ) : (
     <Link 
       href={isEditing ? '#' : href} // Disable link when editing
-      className={clsx(styles.item, isActive && styles.active)}
+      className={clsx(styles.item, isActive && styles.active, isSearchMatch && styles.searchHighlight)}
       style={{ paddingLeft }}
       onContextMenu={(e) => onContextMenu(e, node)}
       onClick={(e) => isEditing && e.preventDefault()}
@@ -240,6 +260,9 @@ export default function Sidebar({ initialTree }: { initialTree: FileNode[] }) {
     const [creatingState, setCreatingState] = useState<{ parentPath: string; type: 'file' | 'directory' } | null>(null);
     const [sortOption, setSortOption] = useState<'name-asc' | 'name-desc' | 'mtime-asc' | 'mtime-desc' | 'birthtime-asc' | 'birthtime-desc'>('name-asc');
     const [showSortMenu, setShowSortMenu] = useState(false);
+    const [collapseAllTick, setCollapseAllTick] = useState(0);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -364,13 +387,61 @@ export default function Sidebar({ initialTree }: { initialTree: FileNode[] }) {
         }));
     };
 
-    const sortedTree = sortNodes(initialTree);
+    const filterNodes = (nodes: FileNode[], query: string): FileNode[] => {
+        if (!query) return nodes;
+        
+        const lowerQuery = query.toLowerCase();
+        
+        return nodes.reduce((acc: FileNode[], node) => {
+            const matchesItself = node.name.toLowerCase().includes(lowerQuery);
+            const filteredChildren = node.children ? filterNodes(node.children, query) : undefined;
+            const hasMatchingChildren = filteredChildren && filteredChildren.length > 0;
+            
+            if (matchesItself || hasMatchingChildren) {
+                acc.push({
+                    ...node,
+                    children: filteredChildren
+                });
+            }
+            return acc;
+        }, []);
+    };
+
+    const filteredTree = filterNodes(initialTree, searchQuery);
+    const sortedTree = sortNodes(filteredTree);
 
   return (
-    <DndContext onDragEnd={handleDragEnd} collisionDetection={pointerWithin} sensors={sensors}>
-        <aside className={styles.sidebar}>
-        <div className={styles.title}>
-            <span>Notas</span>
+    <>
+      {isCollapsed && (
+        <button 
+          className={styles.expandBtn} 
+          onClick={() => setIsCollapsed(false)}
+          title="Mostrar Sidebar"
+        >
+          <PanelLeftOpen size={20} />
+        </button>
+      )}
+      <DndContext onDragEnd={handleDragEnd} collisionDetection={pointerWithin} sensors={sensors}>
+        <aside className={clsx(styles.sidebar, isCollapsed && styles.collapsed)}>
+          <div style={{ opacity: isCollapsed ? 0 : 1, transition: 'opacity 0.2s', display: isCollapsed ? 'none' : 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            <div className={styles.title}>
+                <span>Notas</span>
+                <button 
+                  className={styles.collapseBtn} 
+                  onClick={() => setIsCollapsed(true)}
+                  title="Ocultar Sidebar"
+                >
+                  <PanelLeftClose size={18} />
+                </button>
+            </div>
+        <div className={styles.searchContainer}>
+            <input 
+                type="text" 
+                placeholder="Buscar notas..." 
+                className={styles.searchInput}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+            />
         </div>
         <div className={styles.toolbar}>
             <button onClick={() => handleCreateStart('file')} className={styles.toolBtn} title="Nueva Nota">
@@ -412,6 +483,13 @@ export default function Sidebar({ initialTree }: { initialTree: FileNode[] }) {
                     </div>
                 )}
             </div>
+            <button 
+                onClick={() => setCollapseAllTick(t => t + 1)} 
+                className={styles.toolBtn} 
+                title="Colapsar Todo"
+            >
+                <FoldVertical size={16} />
+            </button>
             <div className={styles.themeToggleWrapper}>
                 <ThemeToggle />
             </div>
@@ -438,6 +516,8 @@ export default function Sidebar({ initialTree }: { initialTree: FileNode[] }) {
                 creatingState={creatingState}
                 onSubmit={handleSubmit}
                 onCancel={handleCancel}
+                collapseAllTick={collapseAllTick}
+                searchQuery={searchQuery}
             />
             ))}
         </RootDropZone>
@@ -472,7 +552,9 @@ export default function Sidebar({ initialTree }: { initialTree: FileNode[] }) {
                 </div>
             </div>
         )}
+          </div>
         </aside>
-    </DndContext>
+      </DndContext>
+    </>
   );
 }

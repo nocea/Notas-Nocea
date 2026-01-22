@@ -5,7 +5,7 @@ import CodeEditor from './CodeEditor';
 import MarkdownViewer from './MarkdownViewer';
 import MarkdownToolbar from './MarkdownToolbar';
 import { saveContent } from '@/app/actions';
-import { Save, Eye, Edit, Columns, File as FileIcon } from 'lucide-react';
+import { Save, Eye, Edit, Columns, File as FileIcon, ArrowLeftRight } from 'lucide-react';
 import clsx from 'clsx';
 import styles from './EditorLayout.module.css';
 
@@ -23,6 +23,7 @@ export default function EditorLayout({ initialContent, filePath }: EditorLayoutP
   const [isDirty, setIsDirty] = useState(false);
   const [editorInstance, setEditorInstance] = useState<any>(null);
   const [monacoInstance, setMonacoInstance] = useState<any>(null);
+  const [isEditorRight, setIsEditorRight] = useState(true);
 
   // Update content if initialContent changes (e.g. navigation)
   useEffect(() => {
@@ -94,6 +95,17 @@ export default function EditorLayout({ initialContent, filePath }: EditorLayoutP
           >
             <Columns size={16} />
           </button>
+          
+          {mode === 'split' && (
+            <button 
+              className={styles.button} 
+              onClick={() => setIsEditorRight(!isEditorRight)}
+              title="Intercambiar posiciones"
+            >
+              <ArrowLeftRight size={16} />
+            </button>
+          )}
+
           <div className={styles.separator} />
           <button 
             className={clsx(styles.button, styles.saveButton)} 
@@ -108,23 +120,61 @@ export default function EditorLayout({ initialContent, filePath }: EditorLayoutP
       </div>
 
       <div className={styles.contentArea}>
-        {(mode === 'edit' || mode === 'split') && (
-          <div className={clsx(styles.pane, styles.editorPane)}>
-            <MarkdownToolbar editor={editorInstance} monaco={monacoInstance} />
-            <div style={{ flex: 1, position: 'relative', width: '100%' }}>
-              <CodeEditor 
-                value={content} 
-                onChange={handleContentChange} 
-                onEditorMount={handleEditorMount}
-              />
-            </div>
-          </div>
-        )}
-        
-        {(mode === 'view' || mode === 'split') && (
-          <div className={clsx(styles.pane, styles.viewerPane)}>
-            <MarkdownViewer content={content} />
-          </div>
+        {mode === 'split' ? (
+          isEditorRight ? (
+            <>
+              <div className={clsx(styles.pane, styles.viewerPane)}>
+                <MarkdownViewer content={content} />
+              </div>
+              <div className={clsx(styles.pane, styles.editorPane)}>
+                <MarkdownToolbar editor={editorInstance} monaco={monacoInstance} />
+                <div style={{ flex: 1, position: 'relative', width: '100%' }}>
+                  <CodeEditor 
+                    value={content} 
+                    onChange={handleContentChange} 
+                    onEditorMount={handleEditorMount}
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={clsx(styles.pane, styles.editorPane)}>
+                <MarkdownToolbar editor={editorInstance} monaco={monacoInstance} />
+                <div style={{ flex: 1, position: 'relative', width: '100%' }}>
+                  <CodeEditor 
+                    value={content} 
+                    onChange={handleContentChange} 
+                    onEditorMount={handleEditorMount}
+                  />
+                </div>
+              </div>
+              <div className={clsx(styles.pane, styles.viewerPane)}>
+                <MarkdownViewer content={content} />
+              </div>
+            </>
+          )
+        ) : (
+          <>
+            {mode === 'edit' && (
+              <div className={clsx(styles.pane, styles.editorPane)}>
+                <MarkdownToolbar editor={editorInstance} monaco={monacoInstance} />
+                <div style={{ flex: 1, position: 'relative', width: '100%' }}>
+                  <CodeEditor 
+                    value={content} 
+                    onChange={handleContentChange} 
+                    onEditorMount={handleEditorMount}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {mode === 'view' && (
+              <div className={clsx(styles.pane, styles.viewerPane)}>
+                <MarkdownViewer content={content} />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

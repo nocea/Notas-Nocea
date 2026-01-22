@@ -129,12 +129,18 @@
 }
 
 .editorPane {
-  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
+.contentArea > .pane + .pane {
+    border-left: 1px solid var(--border);
+}
+
 .viewerPane {
   background-color: var(--background);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden !important; /* Ensure the TOC stays fixed and only content scrolls */
 }
