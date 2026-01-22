@@ -43,34 +43,60 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 const execAsync = promisify(exec);
 
-export async function gitSync() {
-  const contentDir = path.join(process.cwd(), 'content');
-  // Git root might be the project root or the content dir depending on user setup.
-  // User said "Con un plugin subo automaticamente las notas a el repositorio de git".
-  // Assuming the WHOLE project or just content is git tracked.
-  // "Desprenderme de obsidian ... subir cambios a git".
-  // Let's assume the root of 'Notas Nocea' is the git repo (initialized by create-next-app),
-  // OR the content storage is the repo.
-  // Given `create-next-app` initialized git in root, we use root.
-  const repoRoot = process.cwd();
 
+export async function getGitConfig() {
+  const repoRoot = process.cwd();
   try {
-    // 1. Add all
-    await execAsync('git add .', { cwd: repoRoot });
-    // 2. Commit
-    await execAsync(`git commit -m "Sync from Notas Nocea at ${new Date().toISOString()}"`, { cwd: repoRoot });
-    // 3. Push (might fail if no remote)
-    // We'll try push, return warning if fails.
-    try {
-      await execAsync('git push', { cwd: repoRoot });
-    } catch (pushError) {
-       console.warn('Git push failed (maybe no remote?):', pushError);
-       return { success: true, message: 'Committed locally. Push failed (no remote configured?).' };
-    }
-    
-    return { success: true, message: 'Synced successfully' };
+    const { stdout } = await execAsync('git remote get-url origin', { cwd: repoRoot });
+    return { configured: true, remoteUrl: stdout.trim() };
   } catch (error) {
-    console.error('Git sync failed:', error);
+    return { configured: false, remoteUrl: '' };
+  }
+}
+
+export async function setGitRemote(url: string) {
+  const repoRoot = process.cwd();
+  try {
+    // Try to remove origin first in case it exists but is broken or we are changing it
+    try {
+        await execAsync('git remote remove origin', { cwd: repoRoot });
+    } catch {}
+    
+    await execAsync(`git remote add origin ${url}`, { cwd: repoRoot });
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to set remote:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function gitPull() {
+  const repoRoot = process.cwd();
+  try {
+    // "pull"
+    await execAsync('git pull origin master', { cwd: repoRoot });
+    revalidatePath('/');
+    return { success: true, message: 'Updated from master' };
+  } catch (error) {
+     console.error('Git pull failed:', error);
+     return { success: false, error: String(error) };
+  }
+}
+
+export async function gitPush() {
+  const repoRoot = process.cwd();
+  try {
+    await execAsync('git add .', { cwd: repoRoot });
+    try {
+        await execAsync(`git commit -m "Auto-sync ${new Date().toISOString()}"`, { cwd: repoRoot });
+    } catch {
+        // Commit might fail if nothing to commit, that's fine, proceed to push
+    }
+    await execAsync('git push origin master', { cwd: repoRoot });
+    
+    return { success: true, message: 'Pushed to master' };
+  } catch (error) {
+    console.error('Git push failed:', error);
     return { success: false, error: String(error) };
   }
 }
