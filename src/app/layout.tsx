@@ -1,9 +1,9 @@
-
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import { getFileTree } from "@/lib/fs";
+import { ThemeProvider } from "@/components/ThemeContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,12 +23,14 @@ export default async function RootLayout({
   const tree = await getFileTree();
 
   return (
-    <html lang="es">
-      <body className={inter.className} style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-        <Sidebar initialTree={tree} />
-        <main style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
-          {children}
-        </main>
+    <html lang="es" suppressHydrationWarning>
+      <body className={inter.className} style={{ display: 'flex', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
+        <ThemeProvider>
+          <Sidebar initialTree={tree} />
+          <main style={{ flex: 1, overflow: 'auto', position: 'relative', backgroundColor: 'var(--background)' }}>
+            {children}
+          </main>
+        </ThemeProvider>
       </body>
     </html>
   );

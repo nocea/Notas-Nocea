@@ -9,6 +9,7 @@ import { Folder, FileText, ChevronRight, ChevronDown, Plus, FolderPlus, Trash, E
 import styles from './Sidebar.module.css';
 import clsx from 'clsx';
 import { DndContext, useDraggable, useDroppable, DragEndEvent, pointerWithin, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import ThemeToggle from './ThemeToggle';
 
 interface FileTreeItemProps {
   node: FileNode;
@@ -410,6 +411,9 @@ export default function Sidebar({ initialTree }: { initialTree: FileNode[] }) {
                         </div>
                     </div>
                 )}
+            </div>
+            <div className={styles.themeToggleWrapper}>
+                <ThemeToggle />
             </div>
         </div>
         <RootDropZone>

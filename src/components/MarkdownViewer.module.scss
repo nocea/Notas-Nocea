@@ -1,8 +1,9 @@
 .viewer {
-  padding: 2rem;
-  max-width: 800px;
+  padding: 3rem 2rem;
+  max-width: 900px;
   margin: 0 auto;
   color: var(--foreground);
+  font-family: var(--font-sans);
 }
 
 .markdown {
@@ -10,15 +11,27 @@
   font-size: 1.1rem;
 
   h1, h2, h3, h4, h5, h6 {
-    margin-top: 1.5em;
-    margin-bottom: 0.5em;
-    font-weight: 600;
+    margin-top: 2em;
+    margin-bottom: 0.75em;
+    font-weight: 800;
     color: var(--foreground);
+    line-height: 1.2;
   }
 
-  h1 { font-size: 2.2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
-  h2 { font-size: 1.8rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
-  h3 { font-size: 1.5rem; }
+  h1 { 
+    font-size: 2.2rem; 
+    border-bottom: 1px solid var(--border); 
+    padding-bottom: 0.5rem;
+    color: var(--primary);
+    text-shadow: 0 0 3px var(--primary-glow);
+  }
+  h2 { 
+    font-size: 1.8rem; 
+    border-bottom: 1px solid var(--border); 
+    padding-bottom: 0.4rem;
+    opacity: 0.9;
+  }
+  h3 { font-size: 1.4rem; opacity: 0.85; }
 
   p {
     margin-bottom: 1rem;
@@ -27,8 +40,12 @@
   a {
     color: var(--primary);
     text-decoration: none;
+    font-weight: 500;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s;
     &:hover {
-      text-decoration: underline;
+      border-bottom-color: var(--primary);
+      text-shadow: 0 0 5px var(--primary-glow);
     }
   }
 
@@ -42,15 +59,14 @@
   }
 
   blockquote {
-    border-left: 4px solid var(--primary);
-    padding-left: 1rem;
-    margin-left: 0;
-    margin-right: 0;
+    border-left: 3px solid var(--primary);
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
     font-style: italic;
-    color: var(--accent);
-    background: rgba(123, 151, 170, 0.1);
-    padding: 1rem;
+    color: var(--foreground);
+    background: var(--secondary);
     border-radius: 0 4px 4px 0;
+    opacity: 0.95;
   }
 
   code {
@@ -58,15 +74,18 @@
     background-color: var(--secondary);
     padding: 0.2rem 0.4rem;
     border-radius: 4px;
-    font-size: 0.9em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
   }
 
   pre {
     background-color: var(--secondary);
-    padding: 1rem;
+    padding: 1.25rem;
     overflow-x: auto;
     border-radius: 8px;
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 
     code {
       background-color: transparent;

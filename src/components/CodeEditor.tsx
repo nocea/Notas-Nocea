@@ -1,5 +1,6 @@
 import React from "react";
 import Editor, { OnMount } from "@monaco-editor/react";
+import { useTheme } from "./ThemeContext";
 
 interface CodeEditorProps {
   value: string;
@@ -14,6 +15,7 @@ export default function CodeEditor({
   language = "markdown",
   onEditorMount,
 }: CodeEditorProps) {
+  const { theme } = useTheme();
   const handleEditorChange = (value: string | undefined) => {
     onChange(value || "");
   };
@@ -31,7 +33,7 @@ export default function CodeEditor({
       language={language}
       defaultValue={value}
       value={value}
-      theme="vs-dark"
+      theme={theme === 'dark' ? 'vs-dark' : 'light'}
       onChange={handleEditorChange}
       onMount={handleEditorDidMount}
       options={{
